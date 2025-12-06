@@ -14,7 +14,6 @@
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: var(--tg-theme-bg-color, #ffffff);
             color: var(--tg-theme-text-color, #000000);
             min-height: 100vh;
             display: flex;
@@ -23,19 +22,25 @@
             justify-content: center;
             padding: 15px;
             overflow: hidden;
+            /* Фон устанавливается через JS */
+            background-size: cover;
+            background-repeat: no-repeat;
+            background-position: center;
+            background-attachment: fixed;
         }
 
         .container {
             width: 100%;
             max-width: 350px;
             text-align: center;
+            position: relative; /* Для позиционирования плашки */
         }
 
         /* Контейнер видео */
         .video-container {
             width: 200px;
             height: 200px;
-            margin: 0 auto 20px;
+            margin: 0 auto; /* Убран отступ снизу */
             border-radius: 50%;
             overflow: hidden;
             box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
@@ -68,25 +73,24 @@
             margin-bottom: 15px;
         }
 
-        /*Компактная полупрозрачная плашка в стиле Fragment*/
+        /* Плашка результата - теперь абсолютно позиционирована */
         .gift-result {
-    display: none;
-    background: rgba(255, 255, 255, 0.15);
-    border: 1px solid rgba(255, 255, 255, 0.25);
-    backdrop-filter: blur(14px);
-    -webkit-backdrop-filter: blur(14px);
-    border-radius: 16px;
-    padding: 18px;
-    margin-top: 20px;
-
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.20);
-    animation: fadeInUp 0.5s ease;
-
-    max-width: 280px;
-    margin-left: auto;
-    margin-right: auto;
-}
-
+            display: none;
+            position: absolute;
+            top: calc(100% + 20px); /* Позиционируем под контейнером с отступом */
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100%;
+            max-width: 280px;
+            background: rgba(255, 255, 255, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            border-radius: 16px;
+            padding: 18px;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.20);
+            animation: fadeInUp 0.5s ease;
+        }
 
         .gift-result.show {
             display: block;
@@ -101,40 +105,40 @@
             font-size: 18px;
             font-weight: 700;
             margin-bottom: 6px;
-            color: #000;
+            /* Цвет устанавливается через JS */
         }
 
         .gift-text {
-        font-size: 14px;
-        line-height: 1.4;
-        color: var(--tg-theme-text-color, #222);
+            font-size: 14px;
+            line-height: 1.4;
+            color: var(--tg-theme-text-color, #222);
         }
 
         .user-name {
             font-weight: 700;
-            color: #000;
+            /* Цвет устанавливается через JS */
             word-break: break-word;
         }
 
         @keyframes slideUp {
-    from {
-        transform: translate(-50%, 15px);
-        opacity: 0;
-    }
-    to {
-        transform: translate(-50%, 0);
-        opacity: 1;
-    }
-}
+            from {
+                transform: translate(-50%, 15px);
+                opacity: 0;
+            }
+            to {
+                transform: translate(-50%, 0);
+                opacity: 1;
+            }
+        }
 
         @keyframes fadeInUp {
             from {
                 opacity: 0;
-                transform: translateY(15px);
+                transform: translateX(-50%) translateY(15px); /* Добавлен translateX для сохранения центрирования */
             }
             to {
                 opacity: 1;
-                transform: translateY(0);
+                transform: translateX(-50%) translateY(0);
             }
         }
 
@@ -168,6 +172,7 @@
 
         <!-- Плашка результата -->
         <div class="gift-result" id="giftResult">
+            <div class="gift-icon">🎁</div>
             <div class="gift-title">Поздравляем!</div>
                 <div class="gift-text">
                     <span class="user-name" id="userName">Пользователь</span>, вы выиграли
@@ -182,8 +187,18 @@
         tg.expand();
         tg.enableClosingConfirmation();
 
-        // Применяем тему пользователя
-        document.body.style.background = tg.themeParams.bg_color || '#ffffff';
+        // ==== ДИНАМИЧЕСКИЙ ФОН ====
+        const isDarkTheme = tg.colorScheme === 'dark';
+        const bgImage = isDarkTheme ? 'blackfon.jpg' : 'whitefon.jpg';
+        document.body.style.backgroundImage = `url(${bgImage})`;
+        
+        // ==== ДИНАМИЧЕСКИЙ ЦВЕТ ТЕКСТА ПЛАШКИ ====
+        const textColor = isDarkTheme ? '#ffffff' : '#000000';
+        // Устанавливаем цвет для заголовка и имени пользователя
+        document.querySelector('.gift-title').style.color = textColor;
+        document.querySelector('.user-name').style.color = textColor;
+        
+        // Применяем только цвет текста основного содержимого из темы
         document.body.style.color = tg.themeParams.text_color || '#000000';
 
         // Получаем данные пользователя
@@ -194,25 +209,23 @@
         // Работа с видео
         const video = document.getElementById('giftVideo');
         const videoContainer = document.getElementById('videoContainer');
-        let isAnimating = false; // <-- Флаг блокировки
+        let isAnimating = false;
 
         // Гарантируем показ первого кадра до запуска
         video.addEventListener('loadeddata', () => {
-        video.pause();
-        video.currentTime = 0;
+            video.pause();
+            video.currentTime = 0;
         });
-
 
         // Обработка клика
         videoContainer.addEventListener('click', async () => {
-            // БЛОКИРОВКА: Если анимация уже идет - игнорируем
             if (isAnimating) {
                 console.log('Анимация уже запущена, подождите...');
                 return;
             }
 
             isAnimating = true;
-            videoContainer.classList.add('animating'); // Визуальная блокировка
+            videoContainer.classList.add('animating');
 
             try {
                 // Запускаем видео с начала
@@ -224,12 +237,12 @@
 
                 // Ждем окончания видео
                 await new Promise(resolve => {
-    video.addEventListener('ended', () => {
-        video.pause();
-        video.currentTime = video.duration; // последний кадр
-        resolve();
-    }, { once: true });
-});
+                    video.addEventListener('ended', () => {
+                        video.pause();
+                        video.currentTime = video.duration;
+                        resolve();
+                    }, { once: true });
+                });
 
                 // Показываем плашку
                 document.getElementById('giftResult').classList.add('show');
