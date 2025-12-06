@@ -6,56 +6,58 @@
     <title>Подарок Premium</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        * { margin:0; padding:0; box-sizing:border-box; }
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            color: var(--tg-theme-text-color, #000000);
+            color: var(--tg-theme-text-color, #ffffff);
             min-height: 100vh;
             display: flex;
-            flex-direction: column;
             align-items: center;
             justify-content: center;
-            padding: 15px;
-            overflow: hidden;
-            /* Фон устанавливается через JS */
+            padding: 20px;
             background-size: cover;
             background-repeat: no-repeat;
             background-position: center;
-            background-attachment: fixed;
+            overflow: hidden;
         }
 
-        .container {
+        .gift-card {
             width: 100%;
-            max-width: 350px;
+            max-width: 380px;
+            background: rgba(0, 0, 0, 0.52);
+            backdrop-filter: blur(18px);
+            -webkit-backdrop-filter: blur(18px);
+            border-radius: 28px;
+            padding: 40px 28px;
             text-align: center;
-            position: relative; /* Для позиционирования плашки */
+            box-shadow: 0 15px 40px rgba(0,0,0,0.4);
+            border: 1px solid rgba(255,255,255,0.12);
         }
 
-        /* Контейнер видео */
+        .instruction {
+            font-size: 17px;
+            color: rgba(255,255,255,0.85);
+            margin-bottom: 32px;
+            font-weight: 500;
+        }
+
+        /* Увеличенный круглый подарок */
         .video-container {
-            width: 200px;
-            height: 200px;
-            margin: 0 auto; /* Убран отступ снизу */
+            width: 240px;
+            height: 240px;
+            margin: 0 auto 36px;
             border-radius: 50%;
             overflow: hidden;
-            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 12px 40px rgba(0,0,0,0.5);
             cursor: pointer;
-            transition: all 0.3s ease;
-            position: relative;
+            transition: transform 0.4s ease;
         }
 
-        .video-container:hover {
-            transform: scale(1.05);
-        }
-
-        .video-container.animating {
-            cursor: not-allowed;
-            pointer-events: none;
+        .video-container:hover { transform: scale(1.08); }
+        .video-container.animating { 
+            cursor: not-allowed; 
+            pointer-events: none; 
             transform: scale(1);
         }
 
@@ -63,226 +65,148 @@
             width: 100%;
             height: 100%;
             object-fit: cover;
-            border-radius: 50%;
         }
 
-        /* Подсказка */
-        .instruction {
-            font-size: 14px;
-            color: var(--tg-theme-hint-color, #999);
-            margin-bottom: 15px;
-        }
-
-        /* Плашка результата - теперь абсолютно позиционирована */
         .gift-result {
             display: none;
-            position: absolute;
-            top: calc(100% + 20px); /* Позиционируем под контейнером с отступом */
-            left: 50%;
-            transform: translateX(-50%);
-            width: 100%;
-            max-width: 280px;
-            background: rgba(255, 255, 255, 0.15);
-            border: 1px solid rgba(255, 255, 255, 0.25);
-            backdrop-filter: blur(14px);
-            -webkit-backdrop-filter: blur(14px);
-            border-radius: 16px;
-            padding: 18px;
-            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.20);
-            animation: fadeInUp 0.5s ease;
+            animation: fadeInUp 0.7s ease forwards;
         }
 
-        .gift-result.show {
-            display: block;
-        }
+        .gift-result.show { display: block; }
 
         .gift-icon {
-            font-size: 40px;
-            margin-bottom: 10px;
+            font-size: 64px;
+            margin-bottom: 16px;
         }
 
         .gift-title {
-            font-size: 18px;
-            font-weight: 700;
-            margin-bottom: 6px;
-            /* Цвет устанавливается через JS */
+            font-size: 28px;
+            font-weight: 800;
+            margin-bottom: 12px;
+            color: #ffffff;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.3);
         }
 
         .gift-text {
-            font-size: 14px;
-            line-height: 1.4;
-            color: var(--tg-theme-text-color, #222);
+            font-size: 18px;
+            line-height: 1.55;
+            color: rgba(255, 255, 255, 0.95);
         }
 
+        /* Имя пользователя теперь белое, а не жёлтое */
         .user-name {
-            font-weight: 700;
-            /* Цвет устанавливается через JS */
-            word-break: break-word;
-        }
-
-        @keyframes slideUp {
-            from {
-                transform: translate(-50%, 15px);
-                opacity: 0;
-            }
-            to {
-                transform: translate(-50%, 0);
-                opacity: 1;
-            }
+            font-weight: 800;
+            color: #ffffff;
+            font-size: 20px;
         }
 
         @keyframes fadeInUp {
-            from {
-                opacity: 0;
-                transform: translateX(-50%) translateY(15px); /* Добавлен translateX для сохранения центрирования */
-            }
-            to {
-                opacity: 1;
-                transform: translateX(-50%) translateY(0);
-            }
+            from { opacity: 0; transform: translateY(25px); }
+            to   { opacity: 1; transform: translateY(0); }
         }
 
         /* Конфетти */
         .confetti {
             position: fixed;
-            width: 8px;
-            height: 8px;
-            position: absolute;
-            animation: confetti-fall 2.5s linear forwards;
+            width: 12px;
+            height: 12px;
+            pointer-events: none;
+            z-index: 9999;
         }
 
         @keyframes confetti-fall {
             to {
-                transform: translateY(100vh) rotate(360deg);
+                transform: translateY(130vh) rotate(900deg);
                 opacity: 0;
             }
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="instruction">Нажмите на подарок, чтобы открыть</div>
+
+    <div class="gift-card">
+        <div class="instruction">Нажмите, чтобы открыть подарок</div>
         
         <div class="video-container" id="videoContainer">
             <video id="giftVideo" muted playsinline preload="auto" poster="gift-preview.jpg">
                 <source src="gift-animation.mp4" type="video/mp4">
-                Ваш браузер не поддерживает видео
             </video>
         </div>
 
-        <!-- Плашка результата -->
         <div class="gift-result" id="giftResult">
             <div class="gift-title">Поздравляем!</div>
-                <div class="gift-text">
-                    <span class="user-name" id="userName">Пользователь</span>, вы выиграли
-                    <b>Telegram Premium</b> на 1 месяц!
-                </div>
+            <div class="gift-text">
+                <span class="user-name" id="userName">Пользователь</span>,<br>
+                ты выиграл <b>Telegram Premium</b> на 1 месяц!
             </div>
         </div>
+    </div>
 
     <script>
-        // Инициализация Telegram Web App
         let tg = window.Telegram.WebApp;
         tg.expand();
         tg.enableClosingConfirmation();
 
-        // ==== ДИНАМИЧЕСКИЙ ФОН ====
-        const isDarkTheme = tg.colorScheme === 'dark';
-        const bgImage = isDarkTheme ? 'blackfon.jpg' : 'whitefon.jpg';
-        document.body.style.backgroundImage = `url(${bgImage})`;
-        
-        // ==== ДИНАМИЧЕСКИЙ ЦВЕТ ТЕКСТА ПЛАШКИ ====
-        const textColor = isDarkTheme ? '#ffffff' : '#000000';
-        // Устанавливаем цвет для заголовка и имени пользователя
-        document.querySelector('.gift-title').style.color = textColor;
-        document.querySelector('.user-name').style.color = textColor;
-        
-        // Применяем только цвет текста основного содержимого из темы
-        document.body.style.color = tg.themeParams.text_color || '#000000';
+        // Фон по теме
+        const isDark = tg.colorScheme === 'dark';
+        document.body.style.backgroundImage = `url(${isDark ? 'blackfon.jpg' : 'whitefon.jpg'})`;
 
-        // Получаем данные пользователя
+        // Имя пользователя
         const user = tg.initDataUnsafe.user;
-        const userName = user ? `${user.first_name} ${user.last_name || ''}` : 'Уважаемый пользователь';
+        const userName = user 
+            ? `${user.first_name} ${user.last_name || ''}`.trim() 
+            : 'Уважаемый пользователь';
         document.getElementById('userName').textContent = userName;
 
-        // Работа с видео
         const video = document.getElementById('giftVideo');
-        const videoContainer = document.getElementById('videoContainer');
-        let isAnimating = false;
+        const container = document.getElementById('videoContainer');
+        const result = document.getElementById('giftResult');
+        const instruction = document.querySelector('.instruction');
+        let playing = false;
 
-        // Гарантируем показ первого кадра до запуска
-        video.addEventListener('loadeddata', () => {
-            video.pause();
-            video.currentTime = 0;
-        });
-
-        // Обработка клика
-        videoContainer.addEventListener('click', async () => {
-            if (isAnimating) {
-                console.log('Анимация уже запущена, подождите...');
-                return;
-            }
-
-            isAnimating = true;
-            videoContainer.classList.add('animating');
+        container.addEventListener('click', async () => {
+            if (playing) return;
+            playing = true;
+            container.classList.add('animating');
 
             try {
-                // Запускаем видео с начала
                 video.currentTime = 0;
                 await video.play();
-
-                // Запускаем конфетти
                 createConfetti();
 
-                // Ждем окончания видео
-                await new Promise(resolve => {
-                    video.addEventListener('ended', () => {
-                        video.pause();
-                        video.currentTime = video.duration;
-                        resolve();
-                    }, { once: true });
-                });
+                await new Promise(r => video.onended = r);
 
-                // Показываем плашку
-                document.getElementById('giftResult').classList.add('show');
-                document.querySelector('.instruction').style.display = 'none';
+                instruction.style.display = 'none';
+                result.classList.add('show');
 
-                // Отправляем результат в бот
                 tg.sendData(JSON.stringify({
                     event: 'gift_opened',
-                    user_id: user?.id,
+                    user_id: user?.id || null,
                     timestamp: Date.now()
                 }));
 
-            } catch (error) {
-                console.error('Ошибка воспроизведения:', error);
-                alert('Не удалось запустить анимацию. Попробуйте еще раз.');
-                isAnimating = false;
-                videoContainer.classList.remove('animating');
+            } catch (e) {
+                alert('Ошибка. Попробуй ещё раз');
+                playing = false;
+                container.classList.remove('animating');
             }
         });
 
-        // Функция конфетти
         function createConfetti() {
-            for (let i = 0; i < 40; i++) {
+            const colors = ['#ff6b6b', '#4ecdc4', '#ffd700', '#ff9ff3', '#74b9ff', '#a29bfe', '#ffeaa7'];
+            for (let i = 0; i < 80; i++) {
                 setTimeout(() => {
-                    const confetti = document.createElement('div');
-                    confetti.className = 'confetti';
-                    confetti.style.left = Math.random() * 100 + '%';
-                    confetti.style.top = '-10px';
-                    confetti.style.background = ['#ffd700', '#ff6b6b', '#4ecdc4', '#45b7d1', '#ff9ff3'][Math.floor(Math.random() * 5)];
-                    confetti.style.animationDelay = Math.random() * 1.5 + 's';
-                    document.body.appendChild(confetti);
-                    setTimeout(() => confetti.remove(), 2500);
-                }, i * 40);
+                    const c = document.createElement('div');
+                    c.className = 'confetti';
+                    c.style.left = Math.random() * 100 + 'vw';
+                    c.style.background = colors[Math.floor(Math.random() * colors.length)];
+                    c.style.animation = `confetti-fall ${2 + Math.random() * 2}s linear forwards`;
+                    c.style.transform = `rotate(${Math.random() * 360}deg)`;
+                    document.body.appendChild(c);
+                    setTimeout(() => c.remove(), 5000);
+                }, i * 45);
             }
         }
-
-        // Обработка ошибок видео (fallback)
-        video.addEventListener('error', (e) => {
-            console.error('Ошибка загрузки видео:', e);
-            document.querySelector('.instruction').textContent = '⚠️ Ошибка загрузки видео';
-        });
     </script>
 </body>
 </html>
