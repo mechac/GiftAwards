@@ -41,10 +41,6 @@
             width: 180px;
             height: 180px;
             margin: 0 auto 24px;
-            /* Убрано скругление, обрезание и ТЕНЬ */
-            /* border-radius: 16px; */
-            /* overflow: hidden; */
-            /* box-shadow: 0 12px 40px rgba(0,0,0,0.5); */
             cursor: pointer;
             transition: transform 0.4s ease;
             background: transparent;
@@ -123,13 +119,10 @@
         <div class="instruction">Нажмите, чтобы открыть подарок</div>
         
         <div class="gift-container" id="giftContainer">
-            <!-- ЭТАП 1: Статичное изображение (до клика) -->
             <img src="gift-animation.png" id="giftPng" alt="Подарок">
-            
-            <!-- ЭТАП 2: Анимация 3 секунды -->
+
             <img src="gift-animation.webp" id="giftWebp" alt="Подарок">
             
-            <!-- ЭТАП 3: Финальный кадр (после 3 секунд) -->
             <img src="last_frame.webp" id="giftLastFrame" alt="Подарок">
         </div>
 
@@ -137,7 +130,7 @@
             <div class="gift-title">Поздравляем!</div>
             <div class="gift-text">
                 <span class="user-name" id="userName">Пользователь</span>,<br>
-                ты выиграл <b>Telegram Premium</b> на 1 месяц!
+                ты выиграл <b>Telegram Premium</b> на 12 месяцев!
             </div>
         </div>
     </div>
