@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Подароки</title>
+    <title>Подарок Premium</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         * { margin:0; padding:0; box-sizing:border-box; }
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            color: var(--tg-theme-text-color, #ffffff);
+            color: #ffffff;
             min-height: 100vh;
             display: flex;
             align-items: center;
@@ -27,7 +27,6 @@
             max-width: 380px;
             background: rgba(0, 0, 0, 0.52);
             backdrop-filter: blur(18px);
-            -webkit-backdrop-filter: blur(18px);
             border-radius: 28px;
             padding: 40px 28px;
             text-align: center;
@@ -42,7 +41,6 @@
             font-weight: 500;
         }
 
-        /* Увеличенный круглый подарок */
         .video-container {
             width: 240px;
             height: 240px;
@@ -52,6 +50,8 @@
             box-shadow: 0 12px 40px rgba(0,0,0,0.5);
             cursor: pointer;
             transition: transform 0.4s ease;
+            position: relative;
+            background: transparent;
         }
 
         .video-container:hover { transform: scale(1.08); }
@@ -65,6 +65,13 @@
             width: 100%;
             height: 100%;
             object-fit: cover;
+            display: none; /* Скрыто по умолчанию */
+        }
+
+        #giftCanvas {
+            width: 100%;
+            height: 100%;
+            display: none;
         }
 
         .gift-result {
@@ -73,11 +80,6 @@
         }
 
         .gift-result.show { display: block; }
-
-        .gift-icon {
-            font-size: 64px;
-            margin-bottom: 16px;
-        }
 
         .gift-title {
             font-size: 28px;
@@ -93,7 +95,6 @@
             color: rgba(255, 255, 255, 0.95);
         }
 
-        /* Имя пользователя теперь белое, а не жёлтое */
         .user-name {
             font-weight: 800;
             color: #ffffff;
@@ -105,7 +106,6 @@
             to   { opacity: 1; transform: translateY(0); }
         }
 
-        /* Конфетти */
         .confetti {
             position: fixed;
             width: 12px;
@@ -120,6 +120,19 @@
                 opacity: 0;
             }
         }
+
+        .error-message {
+            display: none;
+            color: #ff6b6b;
+            font-size: 14px;
+            margin-top: 20px;
+            padding: 10px;
+            background: rgba(255,0,0,0.1);
+            border-radius: 8px;
+            text-align: left;
+        }
+
+        .error-message.show { display: block; }
     </style>
 </head>
 <body>
@@ -128,10 +141,19 @@
         <div class="instruction">Нажмите, чтобы открыть подарок</div>
         
         <div class="video-container" id="videoContainer">
-            <video id="giftVideo" muted playsinline preload="auto" poster="gift-preview.jpg">
+            <!-- ⚠️ ВАЖНО: Для локального тестирования используйте локальный сервер! -->
+            <!-- Python: python -m http.server -->
+            <!-- Node: npx http-server -->
+            <!-- VS Code: "Live Server" extension -->
+            <video id="giftVideo" muted playsinline preload="auto" crossorigin="anonymous">
                 <source src="gift-animation.mp4" type="video/mp4">
+                <!-- Если видео не загружается, закодируйте его в base64 и вставьте сюда -->
+                <!-- <source src="data:video/mp4;base64,AAAA..." type="video/mp4"> -->
             </video>
+            <canvas id="giftCanvas"></canvas>
         </div>
+
+        <div class="error-message" id="errorMessage"></div>
 
         <div class="gift-result" id="giftResult">
             <div class="gift-title">Поздравляем!</div>
@@ -159,36 +181,148 @@
         document.getElementById('userName').textContent = userName;
 
         const video = document.getElementById('giftVideo');
+        const canvas = document.getElementById('giftCanvas');
+        const ctx = canvas.getContext('2d');
         const container = document.getElementById('videoContainer');
         const result = document.getElementById('giftResult');
         const instruction = document.querySelector('.instruction');
+        const errorMessage = document.getElementById('errorMessage');
         let playing = false;
+
+        // Параметры хромакея
+        const chromaKeyConfig = {
+            targetR: 0,
+            targetG: 255,
+            targetB: 0,
+            threshold: 80
+        };
+
+        function isChromaKeyPixel(r, g, b) {
+            const diff = Math.sqrt(
+                Math.pow(r - chromaKeyConfig.targetR, 2) +
+                Math.pow(g - chromaKeyConfig.targetG, 2) +
+                Math.pow(b - chromaKeyConfig.targetB, 2)
+            );
+            return diff < chromaKeyConfig.threshold;
+        }
+
+        function processFrame() {
+            if (!playing || video.paused || video.ended) return;
+            
+            try {
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                const data = imageData.data;
+                
+                for (let i = 0; i < data.length; i += 4) {
+                    if (isChromaKeyPixel(data[i], data[i + 1], data[i + 2])) {
+                        data[i + 3] = 0;
+                    }
+                }
+                
+                ctx.putImageData(imageData, 0, 0);
+            } catch (e) {
+                console.error('Ошибка обработки кадра:', e.message);
+                
+                // Fallback: показываем видео без хромакея
+                canvas.style.display = 'none';
+                video.style.display = 'block';
+                
+                showError('⚠️ Видео без эффекта: ' + e.message);
+            }
+            
+            if (!video.ended) {
+                requestAnimationFrame(processFrame);
+            }
+        }
+
+        function showError(message) {
+            errorMessage.textContent = message;
+            errorMessage.classList.add('show');
+            setTimeout(() => {
+                errorMessage.classList.remove('show');
+            }, 8000);
+        }
 
         container.addEventListener('click', async () => {
             if (playing) return;
-            playing = true;
-            container.classList.add('animating');
-
+            
             try {
+                playing = true;
+                container.classList.add('animating');
+                
+                // Проверка протокола
+                if (window.location.protocol === 'file:') {
+                    throw new Error('🚫 Запуск из файла невозможен! Используйте локальный сервер (http://localhost). Инструкции в HTML-комментариях.');
+                }
+
+                // Загрузка видео
+                if (video.readyState < 2) {
+                    await new Promise((resolve, reject) => {
+                        const timeout = setTimeout(() => reject(new Error('⏱️ Таймаут загрузки видео')), 8000);
+                        
+                        video.addEventListener('loadeddata', () => {
+                            clearTimeout(timeout);
+                            resolve();
+                        }, { once: true });
+                        
+                        video.addEventListener('error', (e) => {
+                            clearTimeout(timeout);
+                            const errorCode = video.error?.code || 'неизвестно';
+                            const errorMessage = video.error?.message || '';
+                            reject(new Error(`📹 Ошибка загрузки видео. Код: ${errorCode} ${errorMessage ? '- ' + errorMessage : ''}`));
+                        }, { once: true });
+                        
+                        video.load();
+                    });
+                }
+                
+                // Настройка canvas
+                if (video.videoWidth && video.videoHeight) {
+                    canvas.width = video.videoWidth;
+                    canvas.height = video.videoHeight;
+                    canvas.style.display = 'block';
+                    video.style.display = 'none';
+                } else {
+                    throw new Error('📏 Не удалось получить размеры видео');
+                }
+                
+                // Запуск видео
                 video.currentTime = 0;
                 await video.play();
+                
+                // Обработка кадров
+                processFrame();
                 createConfetti();
-
-                await new Promise(r => video.onended = r);
-
+                
+                // Ждем окончания
+                await new Promise(resolve => {
+                    video.onended = resolve;
+                });
+                
+                // Показываем результат
                 instruction.style.display = 'none';
                 result.classList.add('show');
+                canvas.style.display = 'none';
+                container.style.background = 'transparent';
 
+                // Отправка данных в Telegram
                 tg.sendData(JSON.stringify({
                     event: 'gift_opened',
                     user_id: user?.id || null,
                     timestamp: Date.now()
                 }));
 
-            } catch (e) {
-                alert('Ошибка. Попробуй ещё раз');
+            } catch (error) {
+                console.error('Критическая ошибка:', error);
+                showError('❌ ' + error.message);
+                
+                // Сброс состояния
                 playing = false;
                 container.classList.remove('animating');
+                video.pause();
+                canvas.style.display = 'none';
+                video.style.display = 'none';
             }
         });
 
@@ -203,10 +337,32 @@
                     c.style.animation = `confetti-fall ${2 + Math.random() * 2}s linear forwards`;
                     c.style.transform = `rotate(${Math.random() * 360}deg)`;
                     document.body.appendChild(c);
-                    setTimeout(() => c.remove(), 5000);
+                    setTimeout(() => c.remove(), 4000);
                 }, i * 45);
             }
         }
+
+        // Проверка при загрузке страницы
+        if (window.location.protocol === 'file:') {
+            showError('⚠️ ВНИМАНИЕ: Вы открываете файл напрямую! Это НЕ будет работать. Запустите локальный сервер.');
+            console.warn('⚠️ Запуск из file:// протокола. Используйте http://localhost:8000 или подобное.');
+        }
+
+        // Обработка ошибок загрузки
+        video.addEventListener('error', (e) => {
+            console.error('Ошибка видео:', video.error);
+            playing = false;
+            container.classList.remove('animating');
+            
+            let errorText = 'Ошибка загрузки видео. ';
+            if (window.location.protocol === 'file:') {
+                errorText += 'Используйте локальный сервер вместо file://';
+            } else if (video.error) {
+                errorText += `Код ошибки: ${video.error.code}`;
+            }
+            
+            showError(errorText);
+        });
     </script>
 </body>
 </html>
